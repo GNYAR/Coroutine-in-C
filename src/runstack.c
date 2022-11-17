@@ -15,7 +15,7 @@ static inline unsigned int __stack_unused(struct rs *rs)
 // push
 int rs_push(struct rs *rs, struct task_struct *task)
 {
-    if (!__stack_unused(rs))
+    if (!__stack_unused(rs)) // overflow
         return -EAGAIN;
 
     rs->r[rs->top] = task;
@@ -29,7 +29,7 @@ struct task_struct *rs_pop(struct rs *rs)
 {
     struct task_struct *task;
 
-    if (!rs->top)
+    if (!rs->top) // underflow
         return NULL;
 
     rs->top--;

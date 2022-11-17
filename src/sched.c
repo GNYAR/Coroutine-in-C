@@ -19,7 +19,8 @@ static inline int fifo_schedule(struct cr *cr, job_t func, void *args)
     new_task = calloc(1, sizeof(struct task_struct));
     if (!new_task)
         return -ENOMEM;
-    if (rq_enqueue(&cr->rq, new_task) < 0) {
+    if (rq_enqueue(&cr->rq, new_task) < 0)
+    {
         free(new_task);
         return -ENOMEM;
     }
@@ -53,7 +54,8 @@ static RBTREE_CMP_INSERT_DEFINE(rb_cmp_insert, _n1, _n2)
     struct task_struct *n2 = container_of(_n2, struct task_struct, node);
     if (n1->sum_exec_runtime < n2->sum_exec_runtime)
         return 1;
-    else {
+    else
+    {
         if (n1->sum_exec_runtime == n2->sum_exec_runtime)
             n1->sum_exec_runtime++;
         return 0;
@@ -126,7 +128,8 @@ static inline int default_put_prev_task(struct cr *cr, struct task_struct *prev)
 
 void sched_init(struct cr *cr)
 {
-    switch (cr->flags) {
+    switch (cr->flags)
+    {
     case CR_DEFAULT:
         RB_ROOT_INIT(cr->root);
         cr->schedule = default_schedule;
