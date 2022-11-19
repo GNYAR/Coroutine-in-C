@@ -19,7 +19,8 @@ static inline int fifo_schedule(struct cr *cr, job_t func, void *args)
     new_task = calloc(1, sizeof(struct task_struct));
     if (!new_task)
         return -ENOMEM;
-    if (rq_enqueue(&cr->rq, new_task) < 0) {
+    if (rq_enqueue(&cr->rq, new_task) < 0)
+    {
         free(new_task);
         return -ENOMEM;
     }
@@ -45,6 +46,49 @@ static inline int fifo_put_prev_task(struct cr *cr, struct task_struct *prev)
     return rq_enqueue(&cr->rq, prev);
 }
 
+/* LIFO scheduler */
+
+static inline int lifo_schedule(struct cr *cr, job_t func, void *args)
+{
+    struct task_struct *new_task;
+
+    new_task = calloc(1, sizeof(struct task_struct));
+
+    if (!new_task) // out of memery
+        return -ENOMEM;
+
+    if (rs_push(&cr->rs, new_task) < 0) // overflow
+    {
+        free(new_task);
+        return -ENOMEM;
+    }
+
+    new_task->cr = cr;
+    new_task->tfd = cr->size++;
+    new_task->job = func;
+    new_task->args = args;
+    new_task->context.label = NULL;
+    new_task->context.wait_yield = 1;
+    new_task->context.blocked = 1;
+
+    return new_task->tfd;
+}
+
+static inline struct task_struct *lifo_pick_next_task(struct cr *cr)
+{
+    return rs_pop(&cr->rs);
+}
+
+static inline int lifo_put_prev_task(struct cr *cr, struct task_struct *prev)
+{
+    int res;
+    struct task_struct *tmp;
+    tmp = rs_pop(&cr->rs);
+
+    res = rs_push(&cr->rs, prev);
+    return tmp ? rs_push(&cr->rs, tmp) : res;
+}
+
 /* Default scheduler */
 
 static RBTREE_CMP_INSERT_DEFINE(rb_cmp_insert, _n1, _n2)
@@ -53,7 +97,8 @@ static RBTREE_CMP_INSERT_DEFINE(rb_cmp_insert, _n1, _n2)
     struct task_struct *n2 = container_of(_n2, struct task_struct, node);
     if (n1->sum_exec_runtime < n2->sum_exec_runtime)
         return 1;
-    else {
+    else
+    {
         if (n1->sum_exec_runtime == n2->sum_exec_runtime)
             n1->sum_exec_runtime++;
         return 0;
@@ -126,7 +171,8 @@ static inline int default_put_prev_task(struct cr *cr, struct task_struct *prev)
 
 void sched_init(struct cr *cr)
 {
-    switch (cr->flags) {
+    switch (cr->flags)
+    {
     case CR_DEFAULT:
         RB_ROOT_INIT(cr->root);
         cr->schedule = default_schedule;
@@ -138,5 +184,11 @@ void sched_init(struct cr *cr)
         cr->schedule = fifo_schedule;
         cr->pick_next_task = fifo_pick_next_task;
         cr->put_prev_task = fifo_put_prev_task;
+        return;
+    case CR_LIFO:
+        rs_init(&cr->rs);
+        cr->schedule = lifo_schedule;
+        cr->pick_next_task = lifo_pick_next_task;
+        cr->put_prev_task = lifo_put_prev_task;
     }
 }
