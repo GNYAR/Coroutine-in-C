@@ -81,7 +81,12 @@ static inline struct task_struct *lifo_pick_next_task(struct cr *cr)
 
 static inline int lifo_put_prev_task(struct cr *cr, struct task_struct *prev)
 {
-    return rs_push(&cr->rs, prev);
+    int res;
+    struct task_struct *tmp;
+    tmp = rs_pop(&cr->rs);
+
+    res = rs_push(&cr->rs, prev);
+    return tmp ? rs_push(&cr->rs, tmp) : res;
 }
 
 /* Default scheduler */
