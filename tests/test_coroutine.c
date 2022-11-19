@@ -10,7 +10,7 @@ COROUTINE_DEFINE(job)
     cr_set(i, 1);
     cr_set(j, 2);
     cr_set(k, 2.2);
-    
+
     cr_set(arr, 2, 4 /* index */);
     printf("[@ job %d] %d %d\n", *(int *)args, cr_dref(i), cr_dref(j));
 
@@ -30,11 +30,12 @@ int main(void)
 {
     int crfd, tfd[10];
 
-    crfd = coroutine_create(CR_DEFAULT);
+    crfd = coroutine_create(CR_LIFO);
     if (crfd < 0)
         return crfd;
 
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i++)
+    {
         tfd[i] = i;
         printf("[tfd %d] %d added, %d\n", coroutine_add(crfd, job, &tfd[i]), i,
                tfd[i]);
